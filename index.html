@@ -1,67 +1,78 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>开始使用layui</title>
-  <link rel="stylesheet" href="layui/css/layui.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简洁时钟</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Arial', sans-serif;
+    }
+    
+    .clock-container {
+      text-align: center;
+      color: white;
+    }
+    
+    .time {
+      font-size: 5rem;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      letter-spacing: 4px;
+    }
+    
+    .date {
+      font-size: 1.5rem;
+      margin-top: 20px;
+      opacity: 0.9;
+    }
+    
+    @media (max-width: 600px) {
+      .time {
+        font-size: 3rem;
+      }
+      .date {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
 </head>
 <body>
+  <div class="clock-container">
+    <div class="time" id="time">00:00:00</div>
+    <div class="date" id="date">加载中...</div>
+  </div>
 
-<table border="1" class="layui-table">
-    <colgroup>
-        <col width="150">
-        <col width="200">
-    </colgroup>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Value</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>
-                os:
-            </td>
-            <td>
-                <div id="os"></div>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                IE:
-            </td>
-            <td>
-                <div id="IE"></div>
-            </td>
-        </tr>
-    </tbody>
-</table>
- 
-<script src="layui/layui.js"></script>
-<script>
-//一般直接写在一个js文件中
-
-
-layui.data('test', {
-  key: 'nickname'
-  ,value: '贤心'
-});
-
-var localTest = layui.data('test');
-console.log(localTest.nickname); //获得“贤心”
-
-var device = layui.device();
-
-// layui.use(['layer', 'form'], function(){
-//   var layer = layui.layer
-//   ,form = layui.form;
-  
-//   layer.msg(device.os);
-// });
-document.getElementById("os").innerText = device.os;
-document.getElementById("IE").innerText = device.ie;
-</script> 
+  <script>
+    function updateClock() {
+      const now = new Date();
+      
+      // 更新时间
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
+      
+      // 更新日期
+      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+      const dateStr = now.toLocaleDateString('zh-CN', options);
+      document.getElementById('date').textContent = dateStr;
+    }
+    
+    // 立即执行一次，然后每秒更新
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
 </body>
 </html>
