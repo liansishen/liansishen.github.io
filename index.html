@@ -1,78 +1,1471 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>简洁时钟</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      font-family: 'Arial', sans-serif;
-    }
-    
-    .clock-container {
-      text-align: center;
-      color: white;
-    }
-    
-    .time {
-      font-size: 5rem;
-      font-weight: bold;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-      letter-spacing: 4px;
-    }
-    
-    .date {
-      font-size: 1.5rem;
-      margin-top: 20px;
-      opacity: 0.9;
-    }
-    
-    @media (max-width: 600px) {
-      .time {
-        font-size: 3rem;
-      }
-      .date {
-        font-size: 1.2rem;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作物浇水收获时间计算器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Microsoft YaHei', '微软雅黑', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    background: linear-gradient(135deg, #f0f7ec 0%, #e4f0da 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: 1200px;
+    width: 100%;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    padding: 32px;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: 28px;
+    color: #2d5a1e;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .subtitle {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+  .subtitle code {
+    background: #eef7e9;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #3a7a2a;
+  }
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 20px;
+  }
+  .form-group {
+    flex: 1;
+    min-width: 180px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+  }
+  .form-group input, .form-group select, .form-group button {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #dce8d4;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background: #fff;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: #6aab4a;
+  }
+  .btn {
+    padding: 10px 32px;
+    background: #4d8f32;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #3d7a26; }
+  .btn:active { transform: scale(0.97); }
+  .presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .preset-btn {
+    padding: 6px 16px;
+    border: 2px solid #dce8d4;
+    border-radius: 20px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    color: #555;
+    transition: all 0.2s;
+  }
+  .preset-btn:hover { border-color: #6aab4a; color: #2d5a1e; }
+  .preset-btn.active {
+    background: #eef7e9;
+    border-color: #6aab4a;
+    color: #2d5a1e;
+    font-weight: 600;
+  }
+
+  /* Summary */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .summary-item {
+    background: #f6faf3;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .summary-item .label {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .summary-item .value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #2d5a1e;
+  }
+  .summary-item .value .unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: #888;
+  }
+  .highlight-green {
+    background: #dff0d6;
+    border: 2px solid #6aab4a;
+  }
+  .highlight-green .value { color: #236b10; }
+
+  /* Table */
+  .schedule-wrap {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead th {
+    background: #eef7e9;
+    color: #2d5a1e;
+    padding: 12px 14px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #cde0c2;
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e8f0e2;
+    white-space: nowrap;
+  }
+  tbody tr:hover { background: #f9fcf7; }
+  tbody tr.water-row td:first-child { font-weight: 600; color: #2d5a1e; }
+  tbody tr:last-child td { border-bottom: none; }
+  .tag-water {
+    display: inline-block;
+    background: #4d8f32;
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .tag-harvest {
+    display: inline-block;
+    background: #e8a820;
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+  .tag-wait {
+    display: inline-block;
+    background: #dce8d4;
+    color: #555;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 12px;
+  }
+  .tag-ready {
+    display: inline-block;
+    background: #e8a820;
+    color: #fff;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: #999;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  @media (max-width: 700px) {
+    .card { padding: 20px; }
+    h1 { font-size: 22px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .summary-item .value { font-size: 20px; }
+    .two-col { flex-direction: column; }
+    .col-extra { width: 100% !important; }
+  }
+
+  /* Two-column layout */
+  .two-col { display: flex; gap: 24px; align-items: flex-start; }
+  .col-main { flex: 1; min-width: 0; }
+  .col-extra { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
+  .col-main > .card { margin-bottom: 20px; overflow: hidden; }
+
+  .side-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.06);
+    padding: 20px;
+  }
+  .side-card input[type="number"],
+  .side-card select {
+    width: 100%; padding: 10px 14px;
+    border: 2px solid #dce8d4; border-radius: 10px;
+    font-size: 14px; font-family: inherit; background: #fff;
+  }
+  .side-card input[type="number"]:focus,
+  .side-card select:focus { outline: none; border-color: #6aab4a; }
+
+  /* Split time inputs */
+  .time-split {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .time-split .part-wrap { display: flex; align-items: center; gap: 1px; }
+  .time-split input[type="number"] {
+    width: 46px;
+    padding: 6px 2px;
+    text-align: center;
+    border: 2px solid #dce8d4;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    color: #2d5a1e;
+    background: #fff;
+  }
+  .time-split input[type="number"]::-webkit-inner-spin-button,
+  .time-split input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .time-split input[type="number"]:focus { outline: none; border-color: #6aab4a; }
+  .time-split .unit { font-size: 11px; color: #888; min-width: 14px; }
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    border: 2px solid #dce8d4;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 10px 0;
+  }
+  .mode-toggle .mode-opt { flex: 1; position: relative; }
+  .mode-toggle .mode-opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .mode-toggle .mode-opt label {
+    display: block; padding: 7px 6px; text-align: center;
+    font-size: 12px; font-weight: 600; font-family: inherit;
+    color: #888; cursor: pointer; transition: all 0.2s; user-select: none;
+  }
+  .mode-toggle .mode-opt input:checked + label { background: #eef7e9; color: #2d5a1e; }
+  .mode-toggle .mode-opt:not(:last-child) label { border-right: 1px solid #e0ecda; }
+
+  input[type="time"] {
+    width: 100%; padding: 8px 12px;
+    border: 2px solid #dce8d4; border-radius: 8px;
+    font-size: 14px; font-weight: 600; font-family: inherit;
+    color: #2d5a1e; background: #fff;
+  }
+  input[type="time"]:focus { outline: none; border-color: #6aab4a; }
+
+  /* Side panel labels */
+  .side-label {
+    font-size: 12px; font-weight: 600; color: #444;
+    margin-bottom: 4px; display: block;
+  }
+
+  /* Vertical timeline — absolute positioning for pixel-perfect alignment */
+  .tl-track {
+    position: relative; margin: 8px 0;
+  }
+  .tl-bg-line {
+    position: absolute; left: 67px; top: 12px; bottom: 12px;
+    width: 3px; background: #d0e0c8; border-radius: 2px;
+    transform: translateX(-50%);
+  }
+  .tl-item {
+    position: absolute; left: 0; right: 0;
+    display: flex; align-items: center;
+  }
+  .tl-time {
+    width: 56px; flex-shrink: 0;
+    font-size: 11px; font-weight: 600; color: #555;
+    text-align: right; padding-right: 10px;
+    line-height: 24px;
+  }
+  .tl-mid {
+    width: 22px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tl-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 3px solid; background: #fff;
+    position: relative; z-index: 1; flex-shrink: 0;
+  }
+  .tl-dot.water { border-color: #2980b9; background: #d6edff; }
+  .tl-dot.now {
+    width: 14px; height: 14px;
+    border-color: #e74c3c; background: #e74c3c;
+    box-shadow: 0 0 0 3px rgba(231,76,60,0.2);
+  }
+  .tl-dot.harvest-end {
+    width: 14px; height: 14px;
+    border-color: #e8a820; background: #e8a820;
+    box-shadow: 0 0 0 3px rgba(232,168,32,0.2);
+  }
+  .tl-info {
+    flex: 1; padding-left: 10px;
+    font-size: 13px; line-height: 24px; color: #333;
+  }
+  .tl-info .tag-e {
+    display: inline-block;
+    font-size: 11px; padding: 1px 8px; border-radius: 10px;
+    font-weight: 600; line-height: 1.6;
+  }
+  .tl-info .tag-e.water { background: #d6edff; color: #1a5a8a; }
+  .tl-info .tag-e.harvest { background: #fef0c8; color: #8a6a20; }
+  .tl-info .tag-e.now { background: #fde8e8; color: #c0392b; }
+  .tl-wait-info {
+    font-size: 11px; color: #888; line-height: 24px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .tl-wait-info .bar {
+    display: inline-block; width: 28px; height: 3px;
+    background: #b8daa4; border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* Notification modal */
+  .modal-overlay {
+    display: none; position: fixed; z-index: 1000;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.35); justify-content: center; align-items: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 16px; padding: 28px 32px;
+    max-width: 420px; width: 90%; box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  }
+  .modal-box h3 { font-size: 18px; color: #2d5a1e; margin-bottom: 16px; }
+  .modal-box .field { margin-bottom: 14px; }
+  .modal-box .field label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 4px; }
+  .modal-box .field input, .modal-box .field select {
+    width: 100%; padding: 10px 14px; border: 2px solid #dce8d4; border-radius: 10px;
+    font-size: 14px; font-family: inherit; background: #fff;
+  }
+  .modal-box .field input:focus, .modal-box .field select:focus { outline: none; border-color: #6aab4a; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .modal-actions .btn { padding: 8px 24px; font-size: 14px; }
+  .modal-actions .btn-cancel { background: #e8e8e8; color: #666; }
+  .modal-actions .btn-cancel:hover { background: #ddd; }
+
+  /* Notification list */
+  .notif-card { margin-top: 0; }
+  .notif-card .notif-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-bottom: 1px solid #f0f5ec; font-size: 13px;
+  }
+  .notif-card .notif-item:last-child { border-bottom: none; }
+  .notif-card .notif-time { color: #555; font-weight: 600; flex-shrink: 0; }
+  .notif-card .notif-text { flex: 1; color: #333; }
+  .notif-card .notif-status { font-size: 11px; color: #888; flex-shrink: 0; }
+  .notif-card .notif-del { cursor: pointer; color: #ccc; font-size: 16px; flex-shrink: 0; }
+  .notif-card .notif-del:hover { color: #e74c3c; }
+  .tl-time-click {
+    cursor: pointer; color: #2980b9; font-weight: 700;
+    border-bottom: 2px dashed #2980b9; padding-bottom: 1px;
+    transition: all 0.2s;
+  }
+  .tl-time-click:hover {
+    color: #1a5a8a; border-bottom-color: #1a5a8a;
+    background: #e8f4ff; border-radius: 3px; padding: 0 2px;
+  }
+</style>
 </head>
 <body>
-  <div class="clock-container">
-    <div class="time" id="time">00:00:00</div>
-    <div class="date" id="date">加载中...</div>
-  </div>
+<div class="container">
+  <div class="two-col">
+    <!-- left: main column -->
+    <div class="col-main">
+      <div class="card">
+        <h1>🌾 作物浇水收获计算器</h1>
+        <p class="subtitle">
+          输入作物的基础成熟时间，计算最优浇水策略。<br>
+      规则：首次浇水立即减少 <code>7%</code>；之后每次浇水前至少等待 <code>6%</code> 时间，
+      浇水减少时间 = 等待时间 × 7 ÷ 24（最多等待 <code>24%</code> 时减少 <code>7%</code>）。
+        </p>
+        <div class="form-row" style="margin-bottom:14px;">
+          <div class="form-group">
+            <label>作物成熟时间 X（小时）</label>
+            <input type="number" id="maturity" value="10" min="0.1" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>每次等待时间</label>
+            <input type="number" id="waitInput" value="0.6" min="0.01" step="0.01">
+          </div>
+          <button class="btn" onclick="calculate()">计算</button>
+        </div>
+        <div class="presets" style="margin-bottom:0;">
+          <button class="preset-btn" data-val="0.06" onclick="setWait(0.06)">最频繁 (×0.06)</button>
+          <button class="preset-btn active" data-val="0.15" onclick="setWait(0.15)">均衡 (×0.15)</button>
+          <button class="preset-btn" data-val="0.24" onclick="setWait(0.24)">最省事 (×0.24)</button>
+        </div>
+      </div>
+      <div id="resultsMain"></div>
+    </div>
 
-  <script>
-    function updateClock() {
-      const now = new Date();
-      
-      // 更新时间
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
-      document.getElementById('time').textContent = `${hours}:${minutes}:${seconds}`;
-      
-      // 更新日期
-      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-      const dateStr = now.toLocaleDateString('zh-CN', options);
-      document.getElementById('date').textContent = dateStr;
+    <!-- right: extra column -->
+    <div class="col-extra">
+      <div class="side-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span style="font-size:14px;font-weight:700;color:#2d5a1e;">📐 浇水时间计算</span>
+          <button style="background:none;border:1px solid #dce8d4;border-radius:8px;padding:4px 12px;font-size:12px;color:#888;cursor:pointer;" onclick="resetRight()">↺ 重置</button>
+        </div>
+
+        <label class="side-label">🌾 作物成熟时间</label>
+        <input type="number" id="r_maturity" value="10" min="0.1" step="0.1">
+
+        <label class="side-label" style="margin-top:10px;">⏱ 每次等待时间</label>
+        <div style="display:flex;gap:6px;">
+          <select id="r_waitSelect" onchange="onRWaitSelect()" style="flex:1;">
+            <option value="">手动输入</option>
+            <option value="0.06">6%</option>
+            <option value="0.15">15%</option>
+            <option value="0.24">24%</option>
+          </select>
+          <input type="number" id="r_waitInput" placeholder="自定义小时" value="" min="0.01" step="0.01" style="width:140px;display:none;">
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e8f0e2;margin:14px 0;">
+
+        <label class="side-label">⏰ 记录时间</label>
+        <div style="display:flex;gap:6px;">
+          <input type="time" id="r_startTimeInput" style="flex:1;">
+          <button style="background:none;border:1px solid #dce8d4;border-radius:8px;padding:6px 10px;font-size:12px;color:#6a8a5a;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;" onclick="setStartTimeNow()">当前时间</button>
+        </div>
+
+        <label class="side-label" style="margin-top:10px;">📌 剩余成熟时间</label>
+        <div class="time-split" id="r_stateRemainSplit">
+          <div class="part-wrap"><input type="number" class="tp" min="0" max="999" value=""><span class="unit">时</span></div>
+          <div class="part-wrap"><input type="number" class="tp" min="0" max="59" value=""><span class="unit">分</span></div>
+          <div class="part-wrap"><input type="number" class="tp" min="0" max="59" value=""><span class="unit">秒</span></div>
+        </div>
+
+        <div class="mode-toggle">
+          <div class="mode-opt"><input type="radio" name="r_stateMode" value="wait" id="r_modeWait" checked><label for="r_modeWait">距离可浇水</label></div>
+          <div class="mode-opt"><input type="radio" name="r_stateMode" value="reduction" id="r_modeReduction"><label for="r_modeReduction">下次可减少</label></div>
+        </div>
+
+        <div class="time-split" id="r_stateModeSplit">
+          <div class="part-wrap"><input type="number" class="tp" min="0" max="999" value=""><span class="unit">时</span></div>
+          <div class="part-wrap"><input type="number" class="tp" min="0" max="59" value=""><span class="unit">分</span></div>
+          <div class="part-wrap"><input type="number" class="tp" min="0" max="59" value=""><span class="unit">秒</span></div>
+        </div>
+      </div>
+      <div id="resultsExtra"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="notifModal">
+  <div class="modal-box">
+    <h3>🔔 设置浇水提醒</h3>
+    <div class="field">
+      <label>浇水时间</label>
+      <input type="text" id="notifWaterTime" readonly style="background:#f5f8f2;">
+    </div>
+    <div class="field">
+      <label>提醒时间</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="datetime-local" id="notifDatetime" style="flex:1;">
+        <span style="font-size:12px;color:#888;">提前</span>
+        <select id="notifAdvance" onchange="notifAdvanceChange()" style="width:80px;">
+          <option value="0">0分钟</option>
+          <option value="5" selected>5分钟</option>
+          <option value="10">10分钟</option>
+          <option value="15">15分钟</option>
+          <option value="30">30分钟</option>
+          <option value="60">1小时</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>提醒内容</label>
+      <input type="text" id="notifBody" value="作物浇水时间到了，请及时操作！">
+    </div>
+    <div class="field">
+      <label>提醒类型</label>
+      <select id="notifType"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeNotifModal()">取消</button>
+      <button class="btn" onclick="saveNotification()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Webhook settings modal -->
+<div class="modal-overlay" id="webhookListModal">
+  <div class="modal-box" style="max-width:500px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="margin:0;">⚙ Webhook 配置</h3>
+      <button style="background:none;border:1px solid #dce8d4;border-radius:8px;padding:6px 14px;font-size:13px;color:#6a8a5a;cursor:pointer;font-family:inherit;" onclick="openWebhookEdit(0)">+ 添加</button>
+    </div>
+    <div id="webhookList"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="btn btn-cancel" onclick="closeWebhookSettings()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- Webhook edit modal -->
+<div class="modal-overlay" id="webhookEditModal">
+  <div class="modal-box">
+    <h3 id="webhookEditTitle">添加 Webhook</h3>
+    <div class="field">
+      <label>名称</label>
+      <input type="text" id="whName" placeholder="例如: Discord / Slack">
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input type="text" id="whUrl" placeholder="https://hooks.example.com/...">
+    </div>
+    <div class="field">
+      <label>请求方法</label>
+      <select id="whMethod" onchange="onWhMethodChange()">
+        <option value="POST">POST</option>
+        <option value="GET">GET</option>
+      </select>
+    </div>
+    <div class="field">
+      <label id="whBodyLabel">请求内容 (JSON)</label>
+      <textarea id="whBody" rows="4" style="width:100%;padding:10px 14px;border:2px solid #dce8d4;border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;" placeholder='{"text":"💧 浇水提醒: ${body}"}'></textarea>
+    </div>
+    <div id="whTestResult" style="font-size:12px;color:#888;margin-bottom:10px;white-space:pre-wrap;max-height:80px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="testWebhook()" style="background:#5a8ab5;color:#fff;">测试</button>
+      <button class="btn btn-cancel" onclick="closeWebhookEdit()">取消</button>
+      <button class="btn" onclick="saveWebhook()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Helpers ───
+function setWait(multiplier) {
+  const x = parseFloat(document.getElementById('maturity').value) || 10;
+  document.getElementById('waitInput').value = (x * multiplier).toFixed(2);
+  document.querySelectorAll('.preset-btn:not([data-side])').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.preset-btn[data-val="${multiplier}"]:not([data-side])`).classList.add('active');
+  calculate();
+}
+function setWaitRight(multiplier) {
+  const x = parseFloat(document.getElementById('r_maturity').value) || 10;
+  document.getElementById('r_waitInput').value = (x * multiplier).toFixed(2);
+  const sel = document.getElementById('r_waitSelect');
+  sel.value = multiplier.toString();
+  calcRight();
+}
+function onRWaitSelect() {
+  const sel = document.getElementById('r_waitSelect');
+  const inp = document.getElementById('r_waitInput');
+  const v = sel.value;
+  if (v) {
+    inp.style.display = 'none';
+    const x = parseFloat(document.getElementById('r_maturity').value) || 10;
+    inp.value = (x * parseFloat(v)).toFixed(2);
+    calcRight();
+  } else {
+    inp.style.display = '';
+    inp.focus();
+  }
+}
+function resetRight() {
+  document.getElementById('r_maturity').value = '';
+  document.getElementById('r_waitInput').value = '';
+  document.getElementById('r_waitInput').style.display = 'none';
+  document.getElementById('r_waitSelect').value = '';
+  document.getElementById('r_startTimeInput').value = '';
+  document.getElementById('r_modeWait').checked = true;
+  document.querySelectorAll('#r_stateRemainSplit .tp, #r_stateModeSplit .tp').forEach(e => e.value = '');
+  calcRight();
+}
+
+function getSplitHours(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return 0;
+  const parts = el.querySelectorAll('.tp');
+  const h = parseInt(parts[0] && parts[0].value) || 0;
+  const m = parseInt(parts[1] && parts[1].value) || 0;
+  const s = parseInt(parts[2] && parts[2].value) || 0;
+  return h + m / 60 + s / 3600;
+}
+
+function formatNum(v, d) { return Number(v.toFixed(d || 2)); }
+
+function toTimeStr(hours) {
+  if (hours < 0) return '-';
+  if (hours === 0) return '0秒';
+  const t = Math.round(hours * 3600);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  const p = [];
+  if (h > 0) p.push(h + '时');
+  if (m > 0) p.push(m + '分');
+  if (s > 0) p.push(s + '秒');
+  return p.join('') || '0秒';
+}
+// Duration format: "HH小时MM分钟SS秒" (for wait times / reduction amounts)
+function toDurStr(hours) {
+  if (hours < 0) return '-';
+  if (hours === 0) return '0秒';
+  const t = Math.round(hours * 3600);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  const p = [];
+  if (h > 0) p.push(h + '小时');
+  if (m > 0) p.push(m + '分钟');
+  if (s > 0) p.push(s + '秒');
+  return p.join('') || '0秒';
+}
+
+function toClockStr(date) {
+  return String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+}
+
+// ─── localStorage helpers ───
+function saveUIState() {
+  const d = function(id) { const e = document.getElementById(id); return e ? e.value : ''; };
+  function sp(id) {
+    const parts = document.getElementById(id);
+    if (!parts) return '';
+    const p = parts.querySelectorAll('.tp');
+    return (p[0]?p[0].value:'')+'|'+(p[1]?p[1].value:'')+'|'+(p[2]?p[2].value:'');
+  }
+  const mr = document.querySelector('input[name="r_stateMode"]:checked');
+  try {
+    localStorage.setItem('wsj_calc', JSON.stringify({
+      maturity: d('maturity'), waitInput: d('waitInput'),
+      r_maturity: d('r_maturity'), r_waitInput: d('r_waitInput'),
+      r_startTime: d('r_startTimeInput'),
+      r_stateRem: sp('r_stateRemainSplit'),
+      r_stateMode: sp('r_stateModeSplit'),
+      r_stateModeVal: mr ? mr.value : 'wait'
+    }));
+  } catch(e) {}
+}
+function restoreUIState() {
+  try {
+    const s = JSON.parse(localStorage.getItem('wsj_calc'));
+    if (!s) return false;
+    function sv(id, v) { const e = document.getElementById(id); if (e && v !== undefined && v !== '') e.value = v; }
+    sv('maturity', s.maturity);
+    sv('waitInput', s.waitInput);
+    sv('r_maturity', s.r_maturity);
+    sv('r_waitInput', s.r_waitInput);
+    sv('r_startTimeInput', s.r_startTime);
+    function rsp(id, val) {
+      const parts = document.getElementById(id);
+      if (!parts || !val) return;
+      const p = parts.querySelectorAll('.tp');
+      const v = val.split('|');
+      for (let i = 0; i < 3 && i < v.length; i++) if (p[i]) p[i].value = v[i];
     }
-    
-    // 立即执行一次，然后每秒更新
-    updateClock();
-    setInterval(updateClock, 1000);
-  </script>
+    rsp('r_stateRemainSplit', s.r_stateRem);
+    rsp('r_stateModeSplit', s.r_stateMode);
+    if (s.r_stateModeVal) {
+      const r = document.querySelector('input[name="r_stateMode"][value="' + s.r_stateModeVal + '"]');
+      if (r) r.checked = true;
+    }
+    // match left preset
+    const x = parseFloat(document.getElementById('maturity').value) || 10;
+    const w = parseFloat(document.getElementById('waitInput').value) || 0;
+    const ratio = w / x;
+    if (ratio > 0.001) {
+      const presets = [0.06, 0.15, 0.24];
+      const closest = presets.reduce((a, b) => Math.abs(b - ratio) < Math.abs(a - ratio) ? b : a);
+      if (Math.abs(closest - ratio) < 0.02) {
+        const btn = document.querySelector('.preset-btn[data-val="' + closest + '"]:not([data-side])');
+        if (btn) {
+          document.querySelectorAll('.preset-btn:not([data-side])').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        }
+      }
+    }
+    // match right dropdown
+    const rx = parseFloat(document.getElementById('r_maturity').value) || 10;
+    const rw = parseFloat(document.getElementById('r_waitInput').value) || 0;
+    const rratio = rw / rx;
+    if (rratio > 0.001) {
+      const presets = [0.06, 0.15, 0.24];
+      const closest = presets.reduce((a, b) => Math.abs(b - rratio) < Math.abs(a - rratio) ? b : a);
+      if (Math.abs(closest - rratio) < 0.02) {
+        document.getElementById('r_waitSelect').value = closest.toString();
+      }
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+// ─── Event delegation ───
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t && t.matches('input[name="stateMode"]')) calculate();
+  if (t && t.matches('input[name="r_stateMode"]')) calcRight();
+});
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t && t.classList.contains('tp')) {
+    const v = parseInt(t.value) || 0;
+    const max = parseInt(t.max) || 999;
+    if (v > max) t.value = max;
+    if (v < (parseInt(t.min) || 0)) t.value = t.min;
+    // determine which side
+    const side = t.closest('[id^="r_"]') ? 'right' : 'left';
+    if (side === 'right') calcRight(); else calculate();
+  }
+  if (t && t.id === 'r_startTimeInput') calcRight();
+});
+document.getElementById('maturity').addEventListener('input', () => {
+  const b = document.querySelector('.preset-btn.active:not([data-side])');
+  if (b) { const m = parseFloat(b.dataset.val); document.getElementById('waitInput').value = (parseFloat(document.getElementById('maturity').value) * m).toFixed(2); }
+  calculate();
+});
+document.getElementById('waitInput').addEventListener('input', () => {
+  document.querySelectorAll('.preset-btn:not([data-side])').forEach(b => b.classList.remove('active'));
+  calculate();
+});
+// Right column listeners
+document.getElementById('r_maturity').addEventListener('input', () => {
+  const b = document.querySelector('.preset-btn.active[data-side="r"]');
+  if (b) { const m = parseFloat(b.dataset.val); document.getElementById('r_waitInput').value = (parseFloat(document.getElementById('r_maturity').value) * m).toFixed(2); }
+  calcRight();
+});
+document.getElementById('r_waitInput').addEventListener('input', () => {
+  document.querySelectorAll('.preset-btn[data-side="r"]').forEach(b => b.classList.remove('active'));
+  calcRight();
+});
+// Init: restore saved or default to now
+(function() {
+  if (!restoreUIState()) {
+    const n = new Date();
+    document.getElementById('startTimeInput').value =
+      String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  }
+})();
+
+// ─── Simulation ───
+// Rules: initial water reduces 7%. Then wait ≥ X×0.06, reduction = wait × 7/24, max wait X×0.24 → max reduction 7%
+function simulate(X, effectiveWait, startState) {
+  const minWait = X * 0.06;
+  const maxReduction = X * 0.07;
+  const maxEffWait = Math.min(effectiveWait, 0.24 * X);
+  const schedule = [];
+  let remaining, currentTime;
+
+  function pushReady(t) { schedule.push({ type: 'ready', time: t, remaining: 0 }); }
+  function calcReduction(w) { return Math.min(w * 7 / 24, maxReduction); }
+
+  if (startState) {
+    remaining = startState.currentRemaining;
+    currentTime = 0;
+
+    // Compute how long user has already waited since last watering
+    let alreadyWaited;
+    if (startState.mode === 'reduction') {
+      // reduction = totalWait * 7/24 → totalWait = reduction * 24/7
+      alreadyWaited = startState.reductionAmount * 24 / 7;
+    } else {
+      // remainingWait = max(0, minWait - alreadyWaited)
+      alreadyWaited = startState.remainingWait <= 0.001
+        ? minWait
+        : Math.max(0, minWait - startState.remainingWait);
+    }
+
+    // First watering wait: need to reach effectiveWait from last watering
+    let firstWait = Math.max(0, effectiveWait - alreadyWaited);
+    firstWait = Math.min(firstWait, maxEffWait);
+
+    // Apply last-cycle optimization if remaining is small enough
+    const sp = maxEffWait + calcReduction(maxEffWait);
+    if (remaining <= sp) {
+      let optW = (24 / 31) * remaining;
+      if (optW * 7 / 24 > maxReduction) optW = remaining - maxReduction;
+      firstWait = Math.min(Math.max(optW, minWait), firstWait);
+    }
+
+    currentTime += firstWait;
+    const nat = Math.min(firstWait, remaining);
+    remaining -= nat;
+    if (remaining <= 0.001) { pushReady(currentTime); return { schedule, harvestTime: currentTime }; }
+
+    const totalWait = alreadyWaited + firstWait;
+    const r = calcReduction(totalWait);
+    remaining -= r;
+    schedule.push({ type: 'water', time: currentTime, reduction: r, remaining: Math.max(remaining, 0), waitSinceLastWater: totalWait });
+    if (remaining <= 0.001) { pushReady(currentTime); return { schedule, harvestTime: currentTime }; }
+  } else {
+    remaining = X;
+    currentTime = 0;
+    schedule.push({ type: 'water', time: 0, reduction: maxReduction, remaining: remaining - maxReduction, waitSinceLastWater: 0 });
+    remaining -= maxReduction;
+  }
+
+  while (remaining > 0.001) {
+    const sp = maxEffWait + calcReduction(maxEffWait);
+    let w;
+    if (remaining <= minWait) { w = remaining; }
+    else if (remaining <= sp) {
+      // Last cycle: solve w + w*7/24 = remaining → w = remaining * 24/31
+      let o = (24 / 31) * remaining;
+      if (o * 7 / 24 > maxReduction) o = remaining - maxReduction;
+      w = Math.min(Math.max(o, minWait), maxEffWait);
+    } else { w = maxEffWait; }
+    currentTime += w;
+    const nat = Math.min(w, remaining);
+    remaining -= nat;
+    if (remaining <= 0.001) { pushReady(currentTime); break; }
+    const r = calcReduction(w);
+    remaining -= r;
+    schedule.push({ type: 'water', time: currentTime, reduction: r, remaining: Math.max(remaining, 0), waitSinceLastWater: w });
+    if (remaining <= 0.001) { pushReady(currentTime); break; }
+  }
+
+  return { schedule, harvestTime: currentTime };
+}
+
+function computeCycle(X, fixedWait) {
+  const mw = X * 0.06, mr = X * 0.07;
+  const cr = w => Math.min(w * 7 / 24, mr);
+  let w = Math.max(fixedWait, mw), rem = X - mr, cnt = 1, t = 0;
+  const effW = Math.min(w, 0.24 * X);
+  while (rem > 0.001) {
+    let o; const sp = effW + cr(effW);
+    if (rem <= sp) {
+      if (rem <= mw) o = rem;
+      else { o = (24 / 31) * rem; if (o * 7 / 24 > mr) o = rem - mr; o = Math.min(Math.max(o, mw), effW); }
+    } else o = effW;
+    t += o; rem -= Math.min(o, rem);
+    if (rem <= 0.001) break;
+    rem -= cr(o); cnt++;
+    if (rem <= 0.001) break;
+  }
+  return { waterings: cnt, harvestTime: t };
+}
+
+// ─── Vertical timeline (absolute-positioned rows) ───
+function renderTimeline(schedule, harvestTime, startDate) {
+  const clock = e => startDate
+    ? toClockStr(new Date(startDate.getTime() + e * 3600000))
+    : toTimeStr(e);
+  const ROW = 24; // px per row
+
+  let html = '<div class="card"><h3 style="font-size:18px;color:#2d5a1e;margin-bottom:8px;">⏱ 时间轴</h3>';
+
+  const events = schedule;
+  if (events.length === 0) {
+    html += '<div style="color:#999;font-size:13px;text-align:center;padding:12px;">作物已收获或无需浇水</div></div>';
+    return html;
+  }
+
+  // Build rows: array of { type, time, dotCls?, tagCls?, label?, waitStr? }
+  const rows = [];
+  rows.push({ type: 'event', time: 0, dot: 'now', tag: 'now', label: '📌 记录时间' });
+
+  let prev = 0;
+  for (let i = 0; i < events.length; i++) {
+    const evt = events[i];
+    const isLast = i === events.length - 1;
+
+    // Wait row
+    if (evt.time > prev + 0.001) {
+      rows.push({ type: 'wait', waitStr: toDurStr(evt.time - prev) });
+    }
+
+    // Event row
+    if (evt.type === 'water') {
+      let lb = '💧 浇水';
+      if (evt.reduction > 0) lb += ' (减' + toDurStr(evt.reduction) + ')';
+      rows.push({ type: 'event', time: evt.time, dot: 'water', tag: 'water', label: lb });
+    } else {
+      rows.push({ type: 'event', time: evt.time, dot: 'harvest-end', tag: 'harvest', label: '🌾 收获', end: true });
+    }
+    prev = evt.time;
+  }
+
+  const totalH = rows.length * ROW;
+
+  html += '<div class="tl-track" style="height:' + totalH + 'px;"><div class="tl-bg-line"></div>';
+
+  // Store startDate for notification click handler
+  const sd = startDate ? startDate.getTime() : '';
+
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const top = i * ROW;
+    if (r.type === 'event') {
+      let timeHtml = clock(r.time);
+      // Make watering event time clickable for notifications
+      if (r.tag === 'water') {
+        timeHtml = '<span class="tl-time-click" onclick="openNotifModal(' + r.time + ',\'' + clock(r.time) + '\',' + sd + ')">' + timeHtml + '</span>';
+      }
+      html += '<div class="tl-item" style="top:' + top + 'px;height:' + ROW + 'px;">' +
+        '<div class="tl-time">' + timeHtml + '</div>' +
+        '<div class="tl-mid"><div class="tl-dot ' + r.dot + '"></div></div>' +
+        '<div class="tl-info"><span class="tag-e ' + r.tag + '">' + r.label + '</span></div>' +
+        '</div>';
+    } else {
+      html += '<div class="tl-item" style="top:' + top + 'px;height:' + ROW + 'px;">' +
+        '<div class="tl-time"></div>' +
+        '<div class="tl-mid"></div>' +
+        '<div class="tl-info"><span class="tl-wait-info"><span class="bar"></span> ' + r.waitStr + '</span></div>' +
+        '</div>';
+    }
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+// ─── Main calculate ───
+function calculate() {
+  const X = parseFloat(document.getElementById('maturity').value);
+  const waitInput = parseFloat(document.getElementById('waitInput').value);
+  const mainDiv = document.getElementById('resultsMain');
+  const extraDiv = document.getElementById('resultsExtra');
+
+  if (!X || X <= 0) { mainDiv.innerHTML = '<div class="card"><div class="empty-state"><div class="icon">⏱</div><p>请输入有效的作物成熟时间</p></div></div>'; extraDiv.innerHTML = ''; return; }
+  if (!waitInput || waitInput <= 0) { mainDiv.innerHTML = '<div class="card"><div class="empty-state"><div class="icon">⏱</div><p>请输入有效的等待时间</p></div></div>'; extraDiv.innerHTML = ''; return; }
+
+  const minWait = X * 0.06;
+  const maxReduction = X * 0.07;
+  const maxEffWait = Math.min(0.24 * X, X);
+  const effectiveWait = Math.max(waitInput, minWait);
+  const waitWarning = waitInput < minWait;
+
+  // ── Simulate from planting (for main results) ──
+  const plantResult = simulate(X, effectiveWait);
+  const fullSchedule = plantResult.schedule;
+  const harvestTime = plantResult.harvestTime;
+  const totalWaterings = fullSchedule.filter(e => e.type === 'water').length;
+  const optResult = computeCycle(X, X * 0.24);
+  const minResult = computeCycle(X, X * 0.06);
+
+  // ── Read right column state for timeline ──
+  const rX = parseFloat(document.getElementById('r_maturity').value);
+  const rWait = parseFloat(document.getElementById('r_waitInput').value);
+  const rMinWait = rX * 0.06;
+  const rMaxRed = rX * 0.07;
+  const rMaxEff = Math.min(0.24 * rX, rX);
+  const rEffWait = Math.max(rWait, rMinWait);
+  const rRemHours = getSplitHours('r_stateRemainSplit');
+  const rMode = document.querySelector('input[name="r_stateMode"]:checked');
+  const rModeVal = rMode ? rMode.value : 'wait';
+  const rModeHours = getSplitHours('r_stateModeSplit');
+  const rUseState = rX > 0.001 && rRemHours > 0.001;
+
+  const rStv = document.getElementById('r_startTimeInput').value;
+  let rStartDate = null;
+  if (rStv) {
+    const [sh, sm] = rStv.split(':').map(Number);
+    const d = new Date(); d.setHours(sh, sm, 0, 0);
+    rStartDate = d;
+  }
+
+  let timelineSchedule, timelineHarvestTime;
+  if (rUseState) {
+    const rs = rModeVal === 'wait'
+      ? { mode: 'wait', currentRemaining: rRemHours, remainingWait: rModeHours }
+      : { mode: 'reduction', currentRemaining: rRemHours, reductionAmount: rModeHours };
+    const st = simulate(rX, rEffWait, rs);
+    timelineSchedule = st.schedule;
+    timelineHarvestTime = st.harvestTime;
+  } else if (rX > 0.001) {
+    const st = simulate(rX, rEffWait);
+    timelineSchedule = st.schedule;
+    timelineHarvestTime = st.harvestTime;
+  } else {
+    timelineSchedule = [];
+    timelineHarvestTime = 0;
+  }
+
+  // ── Render left column (summary + table) ──
+  let wh = '';
+  if (waitWarning) wh = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#856404;">⚠️ 等待时间不能少于 6% = <strong>' + toDurStr(minWait) + '</strong>，已自动调整</div>';
+  if (effectiveWait > X * 0.24) wh = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#856404;">⚠️ 等待时间超过 24%（<strong>' + toDurStr(X * 0.24) + '</strong>）时，超出部分无收益</div>';
+
+  let md =
+    '<div class="card">' + wh +
+    '<div class="summary-grid">' +
+    '<div class="summary-item highlight-green"><div class="label">收获时间</div><div class="value">' + toDurStr(harvestTime) + '</div></div>' +
+    '<div class="summary-item"><div class="label">节省时间</div><div class="value">' + toDurStr(X - harvestTime) + ' <span style="font-size:12px;color:#888;">(' + formatNum((X - harvestTime) / X * 100) + '%)</span></div></div>' +
+    '<div class="summary-item"><div class="label">浇水次数</div><div class="value">' + totalWaterings + ' <span class="unit">次</span></div></div>' +
+    '<div class="summary-item"><div class="label">每次等待</div><div class="value">' + toDurStr(effectiveWait) + '</div></div>' +
+    '</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:20px;margin-top:4px;font-size:13px;color:#666;">' +
+    '<span>基础成熟时间: <strong>' + toDurStr(X) + '</strong></span>' +
+    '<span>最短等待 (6%): <strong>' + toDurStr(minWait) + '</strong> → <strong>' + minResult.waterings + '</strong> 次</span>' +
+    '<span>最佳等待 (24%): <strong>' + toDurStr(X * 0.24) + '</strong> → <strong>' + optResult.waterings + '</strong> 次</span>' +
+    '</div></div>' +
+    '<div class="card"><h3 style="font-size:18px;color:#2d5a1e;margin-bottom:16px;">📋 浇水日程表</h3><div class="schedule-wrap"><table>' +
+    '<thead><tr><th>时间</th><th>事件</th><th>等待时间</th><th>减少时间</th><th>剩余时间</th></tr></thead><tbody>';
+  md += '<tr><td>-</td><td><span class="tag-water">🌱 种植</span></td><td>-</td><td>-</td><td>' + toDurStr(X) + '</td></tr>';
+  for (const e of fullSchedule) {
+    if (e.type === 'water') {
+      const t = e.time < 0.001 ? '-' : toDurStr(e.time);
+      md += '<tr class="water-row"><td>' + t + '</td><td><span class="tag-water">💧 浇水</span></td><td>' + (e.waitSinceLastWater > 0 ? toDurStr(e.waitSinceLastWater) : '-') + '</td><td>' + (e.reduction > 0 ? toDurStr(e.reduction) : '-') + '</td><td>' + toDurStr(e.remaining) + '</td></tr>';
+    } else if (e.type === 'ready') {
+      md += '<tr style="background:#fef7e0;"><td>' + toDurStr(e.time) + '</td><td><span class="tag-harvest">🌾 收获</span></td><td>-</td><td>-</td><td>-</td></tr>';
+    }
+  }
+  md += '</tbody></table></div>' +
+    '<div style="margin-top:16px;padding:16px;background:#f6faf3;border-radius:10px;font-size:13px;color:#555;line-height:1.7;">' +
+    '<strong style="color:#2d5a1e;">💡 策略说明</strong><br>' +
+    '• 系统自动优化每次浇水的等待时间，最后一轮精确计算到刚好收获。<br>' +
+    '• 等待时间越接近 <code>24%</code>，浇水次数越少。<br>' +
+    '• 推荐等待 <code>24%</code>（' + toDurStr(X * 0.24) + '），浇水次数最少。</div></div>';
+  mainDiv.innerHTML = md;
+
+  extraDiv.innerHTML = renderTimeline(timelineSchedule, timelineHarvestTime, rStartDate) + renderNotifList();
+  saveUIState();
+  schedulePendingNotifs();
+}
+
+function calcRight() {
+  const resDiv = document.getElementById('resultsExtra');
+  const rX = parseFloat(document.getElementById('r_maturity').value);
+  const rWait = parseFloat(document.getElementById('r_waitInput').value);
+  if (!rX || rX <= 0) { resDiv.innerHTML = '<div style="color:#999;font-size:13px;text-align:center;padding:20px;">请输入有效的成熟时间</div>'; return; }
+  if (!rWait || rWait <= 0) { resDiv.innerHTML = '<div style="color:#999;font-size:13px;text-align:center;padding:20px;">请输入有效的等待时间</div>'; return; }
+  const rMinWait = rX * 0.06;
+  const rEffWait = Math.max(rWait, rMinWait);
+  const rRemHours = getSplitHours('r_stateRemainSplit');
+  const rMode = document.querySelector('input[name="r_stateMode"]:checked');
+  const rModeVal = rMode ? rMode.value : 'wait';
+  const rModeHours = getSplitHours('r_stateModeSplit');
+  const rUseState = rRemHours > 0.001;
+  const rStv = document.getElementById('r_startTimeInput').value;
+  let rStartDate = null;
+  if (rStv) {
+    const [sh, sm] = rStv.split(':').map(Number);
+    const d = new Date(); d.setHours(sh, sm, 0, 0);
+    rStartDate = d;
+  }
+  let timelineSchedule, timelineHarvestTime;
+  if (rUseState) {
+    const rs = rModeVal === 'wait'
+      ? { mode: 'wait', currentRemaining: rRemHours, remainingWait: rModeHours }
+      : { mode: 'reduction', currentRemaining: rRemHours, reductionAmount: rModeHours };
+    const st = simulate(rX, rEffWait, rs);
+    timelineSchedule = st.schedule;
+    timelineHarvestTime = st.harvestTime;
+  } else {
+    const st = simulate(rX, rEffWait);
+    timelineSchedule = st.schedule;
+    timelineHarvestTime = st.harvestTime;
+  }
+  resDiv.innerHTML = renderTimeline(timelineSchedule, timelineHarvestTime, rStartDate) + renderNotifList();
+  saveUIState();
+  schedulePendingNotifs();
+}
+
+// ─── Notification system ───
+let _notifId = (function() { const n = getNotifs(); return n.length ? Math.max(...n.map(x=>x.id)) : 0; })();
+function getNotifs() {
+  try { return JSON.parse(localStorage.getItem('wsj_notifs')) || []; } catch(e) { return []; }
+}
+function saveNotifs(arr) {
+  try { localStorage.setItem('wsj_notifs', JSON.stringify(arr)); } catch(e) {}
+}
+
+function openNotifModal(elapsed, clockStr, startTs) {
+  const modal = document.getElementById('notifModal');
+  const pad = n => String(n).padStart(2, '0');
+  if (elapsed > 0) {
+    document.getElementById('notifWaterTime').value = clockStr + '（已过' + toDurStr(elapsed) + '）';
+    const notifyElapsed = Math.max(0, elapsed - 5/60);
+    const baseDate = startTs ? new Date(parseInt(startTs)) : new Date();
+    const notifyDate = new Date(baseDate.getTime() + notifyElapsed * 3600000);
+    document.getElementById('notifDatetime').value =
+      notifyDate.getFullYear() + '-' + pad(notifyDate.getMonth() + 1) + '-' + pad(notifyDate.getDate()) + 'T' +
+      pad(notifyDate.getHours()) + ':' + pad(notifyDate.getMinutes());
+    document.getElementById('notifAdvance').value = '5';
+  } else {
+    // Manual add — default to current time + 5 minutes
+    document.getElementById('notifWaterTime').value = '手动添加';
+    const d = new Date(Date.now() + 5 * 60000);
+    document.getElementById('notifDatetime').value =
+      d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' +
+      pad(d.getHours()) + ':' + pad(d.getMinutes());
+    document.getElementById('notifAdvance').value = '0';
+  }
+  document.getElementById('notifBody').value = '作物浇水时间到了，请及时操作！';
+  // Populate type options dynamically
+  document.getElementById('notifType').innerHTML = buildNotifTypeOptions('browser');
+  modal.dataset.elapsed = elapsed;
+  modal.dataset.startTs = startTs || '';
+  modal.dataset.editId = '';
+  modal.classList.add('show');
+}
+function closeNotifModal() {
+  document.getElementById('notifModal').classList.remove('show');
+}
+function setStartTimeNow() {
+  const n = new Date();
+  document.getElementById('r_startTimeInput').value =
+    String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+  calcRight();
+}
+function notifAdvanceChange() {
+  const elapsed = parseFloat(document.getElementById('notifModal').dataset.elapsed) || 0;
+  const adv = parseInt(document.getElementById('notifAdvance').value) || 0;
+  const startTs = document.getElementById('notifModal').dataset.startTs;
+  const notifyElapsed = Math.max(0, elapsed - adv / 60);
+  const baseDate = startTs ? new Date(parseInt(startTs)) : new Date();
+  const notifyDate = new Date(baseDate.getTime() + notifyElapsed * 3600000);
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('notifDatetime').value =
+    notifyDate.getFullYear() + '-' + pad(notifyDate.getMonth() + 1) + '-' + pad(notifyDate.getDate()) + 'T' +
+    pad(notifyDate.getHours()) + ':' + pad(notifyDate.getMinutes());
+}
+
+function editNotif(id) {
+  const list = getNotifs();
+  const n = list.find(x => x.id === id);
+  if (!n) return;
+  const modal = document.getElementById('notifModal');
+  document.getElementById('notifWaterTime').value = n.waterElapsed > 0 ? toDurStr(n.waterElapsed) + ' 后' : '手动添加';
+  document.getElementById('notifDatetime').value = n.notifyTime;
+  document.getElementById('notifBody').value = n.body;
+  document.getElementById('notifType').innerHTML = buildNotifTypeOptions(n.type);
+  document.getElementById('notifAdvance').value = '0';
+  modal.dataset.editId = id;
+  modal.dataset.elapsed = n.waterElapsed || 0;
+  modal.classList.add('show');
+}
+
+function saveNotification() {
+  const modal = document.getElementById('notifModal');
+  const dtVal = document.getElementById('notifDatetime').value;
+  if (!dtVal) { alert('请选择提醒时间'); return; }
+  const body = document.getElementById('notifBody').value.trim() || '作物浇水时间到了，请及时操作！';
+  const type = document.getElementById('notifType').value;
+  const editId = parseInt(modal.dataset.editId) || 0;
+
+  let list = getNotifs();
+  if (editId) {
+    // Update existing
+    const found = list.find(x => x.id === editId);
+    if (found) {
+      found.notifyTime = dtVal;
+      found.body = body;
+      found.type = type;
+      found.fired = false;
+    }
+  } else {
+    // Create new
+    list.push({
+      id: ++_notifId,
+      waterElapsed: parseFloat(modal.dataset.elapsed) || 0,
+      notifyTime: dtVal,
+      title: '💧 浇水提醒',
+      body: body,
+      type: type,
+      fired: false,
+      createdAt: Date.now()
+    });
+  }
+  saveNotifs(list);
+  closeNotifModal();
+  calcRight();
+  schedulePendingNotifs();
+}
+
+function deleteNotif(id) {
+  let list = getNotifs().filter(n => n.id !== id);
+  saveNotifs(list);
+  calcRight();
+}
+
+function renderNotifList() {
+  const list = getNotifs();
+  let html = '<div class="card notif-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h4 style="font-size:14px;color:#2d5a1e;margin:0;">🔔 通知列表</h4><div style="display:flex;gap:6px;"><button style="background:none;border:1px solid #dce8d4;border-radius:8px;padding:4px 12px;font-size:12px;color:#6a8a5a;cursor:pointer;font-family:inherit;" onclick="openWebhookSettings()">⚙ 设置</button><button style="background:none;border:1px solid #dce8d4;border-radius:8px;padding:4px 12px;font-size:12px;color:#6a8a5a;cursor:pointer;font-family:inherit;" onclick="openNotifModal(0,\'\',\'\')">+ 添加</button></div></div>';
+  if (list.length === 0) {
+    html += '<div style="color:#999;font-size:13px;text-align:center;padding:16px;">暂无待通知</div></div>';
+    return html;
+  }
+  // Sort by notify time
+  list.sort((a, b) => new Date(a.notifyTime) - new Date(b.notifyTime));
+  for (const n of list) {
+    const dt = new Date(n.notifyTime);
+    const pad = v => String(v).padStart(2, '0');
+    const ts = pad(dt.getMonth()+1) + '/' + pad(dt.getDate()) + ' ' + pad(dt.getHours()) + ':' + pad(dt.getMinutes());
+    const status = n.fired ? '✅ 已通知' : '⏳ 待通知';
+    html += '<div class="notif-item" style="cursor:pointer;" onclick="editNotif(' + n.id + ')">' +
+      '<span class="notif-time">' + ts + '</span>' +
+      '<span class="notif-text">' + n.title + '</span>' +
+      '<span class="notif-status">' + status + '</span>' +
+      '<span class="notif-del" onclick="event.stopPropagation();deleteNotif(' + n.id + ')" title="删除">✕</span>' +
+      '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+const _scheduledNotifs = new Set();
+
+function schedulePendingNotifs() {
+  const list = getNotifs().filter(n => !n.fired);
+  const now = Date.now();
+  for (const n of list) {
+    if (_scheduledNotifs.has(n.id)) continue;
+    const target = new Date(n.notifyTime).getTime();
+    const delay = target - now;
+    if (delay <= 0) {
+      if (delay > -30000) {
+        fireNotif(n);
+      }
+      continue;
+    }
+    _scheduledNotifs.add(n.id);
+    setTimeout(() => {
+      _scheduledNotifs.delete(n.id);
+      fireNotif(n);
+    }, delay);
+  }
+}
+
+function fireNotif(notif) {
+  if (notif.fired) return;
+  if (notif.type === 'browser') {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+      new Notification(notif.title, { body: notif.body, icon: '🌾' });
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(p => {
+        if (p === 'granted') new Notification(notif.title, { body: notif.body });
+      });
+    }
+  } else if (notif.type.startsWith('webhook_')) {
+    const whId = parseInt(notif.type.replace('webhook_', ''));
+    const whs = getWebhooks();
+    const wh = whs.find(x => x.id === whId);
+    if (wh) {
+      let url = wh.url;
+      const bodyTmpl = wh.body;
+      const method = wh.method || 'POST';
+      const opts = { method };
+      if (method === 'GET' && bodyTmpl) {
+        url += bodyTmpl.replace(/\$\{body\}/g, encodeURIComponent(notif.body));
+      } else if (bodyTmpl) {
+        const parsedBody = bodyTmpl.replace(/\$\{body\}/g, notif.body);
+        opts.headers = { 'Content-Type': 'application/json' };
+        opts.body = parsedBody;
+      }
+      fetch(url, opts).catch(() => {});
+    }
+  }
+  // Mark as fired
+  let list = getNotifs();
+  const found = list.find(n => n.id === notif.id);
+  if (found) { found.fired = true; saveNotifs(list); }
+  calcRight();
+}
+
+// ─── Webhook functions ───
+function getWebhooks() {
+  try { return JSON.parse(localStorage.getItem('wsj_webhooks')) || []; } catch(e) { return []; }
+}
+function saveWebhooks(arr) {
+  try { localStorage.setItem('wsj_webhooks', JSON.stringify(arr)); } catch(e) {}
+}
+
+function openWebhookSettings() {
+  renderWebhookList();
+  document.getElementById('webhookListModal').classList.add('show');
+}
+function closeWebhookSettings() {
+  document.getElementById('webhookListModal').classList.remove('show');
+}
+
+function renderWebhookList() {
+  const list = getWebhooks();
+  const container = document.getElementById('webhookList');
+  if (list.length === 0) {
+    container.innerHTML = '<div style="color:#999;font-size:13px;text-align:center;padding:20px;">暂无 Webhook 配置</div>';
+    return;
+  }
+  let html = '';
+  for (const wh of list) {
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid #f0f5ec;font-size:13px;cursor:pointer;" onclick="openWebhookEdit(' + wh.id + ')">' +
+      '<span style="flex:1;font-weight:600;">' + wh.name + '</span>' +
+      '<span style="color:#888;font-size:11px;">' + wh.method + ' ' + wh.url.substring(0,30) + '</span>' +
+      '<span style="cursor:pointer;color:#ccc;font-size:16px;" onclick="event.stopPropagation();deleteWebhook(' + wh.id + ')" title="删除">✕</span>' +
+      '</div>';
+  }
+  container.innerHTML = html;
+}
+
+let _whId = (function() { const w = getWebhooks(); return w.length ? Math.max(...w.map(x=>x.id)) : 0; })();
+
+function openWebhookEdit(id) {
+  document.getElementById('webhookEditTitle').textContent = id ? '编辑 Webhook' : '添加 Webhook';
+  if (id) {
+    const list = getWebhooks();
+    const wh = list.find(x => x.id === id);
+    if (wh) {
+      document.getElementById('whName').value = wh.name;
+      document.getElementById('whUrl').value = wh.url;
+      document.getElementById('whMethod').value = wh.method;
+      document.getElementById('whBody').value = wh.body;
+      document.getElementById('webhookEditModal').dataset.editId = id;
+    }
+  } else {
+    document.getElementById('whName').value = '';
+    document.getElementById('whUrl').value = '';
+    document.getElementById('whMethod').value = 'POST';
+    document.getElementById('whBody').value = '{"text":"💧 浇水提醒: ${body}"}';
+    document.getElementById('webhookEditModal').dataset.editId = '';
+  }
+  document.getElementById('whTestResult').textContent = '';
+  onWhMethodChange(); // sync label/placeholder
+  closeWebhookSettings();
+  document.getElementById('webhookEditModal').classList.add('show');
+}
+function closeWebhookEdit() {
+  document.getElementById('webhookEditModal').classList.remove('show');
+  openWebhookSettings();
+}
+function buildNotifTypeOptions(selected) {
+  let opts = '<option value="browser"' + (selected === 'browser' ? ' selected' : '') + '>浏览器通知</option>';
+  const whs = getWebhooks();
+  for (const wh of whs) {
+    const val = 'webhook_' + wh.id;
+    opts += '<option value="' + val + '"' + (selected === val ? ' selected' : '') + '>Webhook: ' + wh.name + '</option>';
+  }
+  return opts;
+}
+
+function saveWebhook() {
+  const name = document.getElementById('whName').value.trim();
+  const url = document.getElementById('whUrl').value.trim();
+  const method = document.getElementById('whMethod').value;
+  const body = document.getElementById('whBody').value.trim();
+  if (!name) { alert('请输入名称'); return; }
+  if (!url) { alert('请输入 URL'); return; }
+  const editId = parseInt(document.getElementById('webhookEditModal').dataset.editId) || 0;
+  let list = getWebhooks();
+  if (editId) {
+    const found = list.find(x => x.id === editId);
+    if (found) { found.name = name; found.url = url; found.method = method; found.body = body; }
+  } else {
+    list.push({ id: ++_whId, name, url, method, body });
+  }
+  saveWebhooks(list);
+  closeWebhookEdit();
+  openWebhookSettings();
+}
+function onWhMethodChange() {
+  const method = document.getElementById('whMethod').value;
+  const label = document.getElementById('whBodyLabel');
+  const ta = document.getElementById('whBody');
+  if (method === 'GET') {
+    label.textContent = '查询参数';
+    ta.placeholder = 'key1=value1&key2=${body}';
+    if (ta.value === '{"text":"💧 浇水提醒: ${body}"}') ta.value = 'text=浇水提醒&content=${body}';
+  } else {
+    label.textContent = '请求内容 (JSON)';
+    ta.placeholder = '{"text":"💧 浇水提醒: ${body}"}';
+    if (ta.value === 'text=浇水提醒&content=${body}') ta.value = '{"text":"💧 浇水提醒: ${body}"}';
+  }
+}
+
+function testWebhook() {
+  let url = document.getElementById('whUrl').value.trim();
+  const method = document.getElementById('whMethod').value;
+  const bodyRaw = document.getElementById('whBody').value.trim();
+  const resultEl = document.getElementById('whTestResult');
+  if (!url) { resultEl.textContent = '请先输入 URL'; return; }
+  resultEl.textContent = '发送中...';
+  const opts = { method };
+  if (method === 'GET' && bodyRaw) {
+    url += bodyRaw.replace(/\$\{body\}/g, '测试消息');
+    opts.mode = 'no-cors';
+  } else if (method === 'POST' && bodyRaw) {
+    try {
+      const parsed = bodyRaw.replace(/\$\{body\}/g, '测试消息');
+      opts.headers = { 'Content-Type': 'application/json' };
+      opts.body = typeof parsed === 'string' ? parsed : JSON.stringify(parsed);
+    } catch(e) {
+      resultEl.textContent = 'JSON 格式错误: ' + e.message;
+      return;
+    }
+  }
+  fetch(url, opts)
+    .then(res => {
+      if (res.type === 'opaque') {
+        resultEl.textContent = '请求已发送（因跨域限制无法读取响应内容，请检查目标服务器日志）';
+      } else {
+        return res.text().then(text => '状态: ' + res.status + ' ' + res.statusText + '\n响应: ' + text.substring(0,200));
+      }
+    })
+    .then(msg => { if (msg) resultEl.textContent = msg; })
+    .catch(err => { resultEl.textContent = '请求失败: ' + err.message; });
+}
+
+function deleteWebhook(id) {
+  let list = getWebhooks().filter(x => x.id !== id);
+  saveWebhooks(list);
+  renderWebhookList();
+}
+
+// Request notification permission on first interaction
+document.addEventListener('click', () => {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}, { once: true });
+
+// Schedule pending notifications on load
+schedulePendingNotifs();
+
+calculate();
+</script>
 </body>
 </html>
