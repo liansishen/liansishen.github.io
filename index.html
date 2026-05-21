@@ -47,15 +47,14 @@
     color: #3a7a2a;
   }
   .form-row {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
-    align-items: flex-end;
+    align-items: end;
     margin-bottom: 20px;
   }
   .form-group {
-    flex: 1;
-    min-width: 180px;
+    min-width: 0;
   }
   .form-group label {
     display: block;
@@ -121,7 +120,7 @@
   /* Summary */
   .summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 24px;
   }
@@ -222,19 +221,31 @@
   .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
   .empty-state p { font-size: 15px; }
 
-  @media (max-width: 700px) {
+  @media (max-width: 800px) {
+    body { padding: 16px 10px; }
     .card { padding: 20px; }
     h1 { font-size: 22px; }
-    .summary-grid { grid-template-columns: repeat(2, 1fr); }
-    .summary-item .value { font-size: 20px; }
-    .two-col { flex-direction: column; }
-    .col-extra { width: 100% !important; }
+    .form-row { grid-template-columns: 1fr; }
+    .summary-grid { grid-template-columns: 1fr; }
+    .two-col { grid-template-columns: 1fr; }
+    .schedule-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .modal-box { max-width: 95%; }
   }
 
-  /* Two-column layout */
-  .two-col { display: flex; gap: 24px; align-items: flex-start; }
-  .col-main { flex: 1; min-width: 0; }
-  .col-extra { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
+  /* Two-column layout — CSS Grid with auto-responsive stacking */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 800px) {
+    .two-col {
+      grid-template-columns: 1fr;
+    }
+  }
+  .col-main { min-width: 0; overflow: hidden; }
+  .col-extra { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
   .col-main > .card { margin-bottom: 20px; overflow: hidden; }
 
   .side-card {
@@ -425,24 +436,37 @@
         <h1>🌾 作物浇水收获计算器</h1>
         <p class="subtitle">
           输入作物的基础成熟时间，计算最优浇水策略。<br>
-      规则：首次浇水立即减少 <code>7%</code>；之后每次浇水前至少等待 <code>6%</code> 时间，
-      浇水减少时间 = 等待时间 × 7 ÷ 24（最多等待 <code>24%</code> 时减少 <code>7%</code>）。
+      规则：首次浇水立即减少 <code>7%</code>；之后每次浇水前至少等待 <code>6%</code> 时间，<br>
+      浇水减少时间 = 等待时间 × 7 ÷ 24（最多等待 <code>24%</code> 时减少 <code>7%</code>）。<br>
+      好友浇水：每次减少作物成熟时间的 <code>2.5%</code>（最多4次）。
         </p>
-        <div class="form-row" style="margin-bottom:14px;">
+        <div class="form-row" style="margin-bottom:8px;">
           <div class="form-group">
-            <label>作物成熟时间 X（小时）</label>
+            <label>作物成熟时间</label>
             <input type="number" id="maturity" value="10" min="0.1" step="0.1">
           </div>
           <div class="form-group">
-            <label>每次等待时间</label>
-            <input type="number" id="waitInput" value="0.6" min="0.01" step="0.01">
+            <label>好友浇水</label>
+            <select id="friendWater" onchange="calculate()">
+              <option value="0">0 次</option>
+              <option value="1">1 次</option>
+              <option value="2">2 次</option>
+              <option value="3">3 次</option>
+              <option value="4">4 次</option>
+            </select>
           </div>
-          <button class="btn" onclick="calculate()">计算</button>
-        </div>
-        <div class="presets" style="margin-bottom:0;">
-          <button class="preset-btn" data-val="0.06" onclick="setWait(0.06)">最频繁 (×0.06)</button>
-          <button class="preset-btn active" data-val="0.15" onclick="setWait(0.15)">均衡 (×0.15)</button>
-          <button class="preset-btn" data-val="0.24" onclick="setWait(0.24)">最省事 (×0.24)</button>
+          <div class="form-group">
+            <label>每次等待</label>
+            <div style="display:flex;gap:4px;">
+              <select id="l_waitSelect" onchange="onLWaitSelect()" style="flex:1;padding:10px 12px;border:2px solid #dce8d4;border-radius:10px;font-size:14px;font-family:inherit;background:#fff;">
+                <option value="0.06">6%</option>
+                <option value="0.15" selected>15%</option>
+                <option value="0.24">24%</option>
+                <option value="">手动</option>
+              </select>
+              <input type="number" id="waitInput" value="1.5" min="0.01" step="0.01" style="width:80px;padding:10px 10px;border:2px solid #dce8d4;border-radius:10px;font-size:14px;font-family:inherit;background:#fff;display:none;">
+            </div>
+          </div>
         </div>
       </div>
       <div id="resultsMain"></div>
@@ -589,15 +613,28 @@
 function setWait(multiplier) {
   const x = parseFloat(document.getElementById('maturity').value) || 10;
   document.getElementById('waitInput').value = (x * multiplier).toFixed(2);
-  document.querySelectorAll('.preset-btn:not([data-side])').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.preset-btn[data-val="${multiplier}"]:not([data-side])`).classList.add('active');
+  const sel = document.getElementById('l_waitSelect');
+  sel.value = multiplier.toString();
   calculate();
+}
+function onLWaitSelect() {
+  const sel = document.getElementById('l_waitSelect');
+  const inp = document.getElementById('waitInput');
+  const v = sel.value;
+  if (v) {
+    inp.style.display = 'none';
+    const x = parseFloat(document.getElementById('maturity').value) || 10;
+    inp.value = (x * parseFloat(v)).toFixed(2);
+    calculate();
+  } else {
+    inp.style.display = '';
+    inp.focus();
+  }
 }
 function setWaitRight(multiplier) {
   const x = parseFloat(document.getElementById('r_maturity').value) || 10;
   document.getElementById('r_waitInput').value = (x * multiplier).toFixed(2);
-  const sel = document.getElementById('r_waitSelect');
-  sel.value = multiplier.toString();
+  document.getElementById('r_waitSelect').value = multiplier.toString();
   calcRight();
 }
 function onRWaitSelect() {
@@ -680,8 +717,11 @@ function saveUIState() {
   }
   const mr = document.querySelector('input[name="r_stateMode"]:checked');
   try {
+    const lw = document.getElementById('l_waitSelect');
     localStorage.setItem('wsj_calc', JSON.stringify({
       maturity: d('maturity'), waitInput: d('waitInput'),
+      l_waitVal: lw ? lw.value : '',
+      friendWater: d('friendWater'),
       r_maturity: d('r_maturity'), r_waitInput: d('r_waitInput'),
       r_startTime: d('r_startTimeInput'),
       r_stateRem: sp('r_stateRemainSplit'),
@@ -697,6 +737,8 @@ function restoreUIState() {
     function sv(id, v) { const e = document.getElementById(id); if (e && v !== undefined && v !== '') e.value = v; }
     sv('maturity', s.maturity);
     sv('waitInput', s.waitInput);
+    sv('friendWater', s.friendWater);
+    if (s.l_waitVal !== undefined) sv('l_waitSelect', s.l_waitVal);
     sv('r_maturity', s.r_maturity);
     sv('r_waitInput', s.r_waitInput);
     sv('r_startTimeInput', s.r_startTime);
@@ -763,12 +805,14 @@ document.addEventListener('input', e => {
   if (t && t.id === 'r_startTimeInput') calcRight();
 });
 document.getElementById('maturity').addEventListener('input', () => {
-  const b = document.querySelector('.preset-btn.active:not([data-side])');
-  if (b) { const m = parseFloat(b.dataset.val); document.getElementById('waitInput').value = (parseFloat(document.getElementById('maturity').value) * m).toFixed(2); }
+  const sel = document.getElementById('l_waitSelect');
+  if (sel.value) {
+    document.getElementById('waitInput').value = (parseFloat(document.getElementById('maturity').value) * parseFloat(sel.value)).toFixed(2);
+  }
   calculate();
 });
 document.getElementById('waitInput').addEventListener('input', () => {
-  document.querySelectorAll('.preset-btn:not([data-side])').forEach(b => b.classList.remove('active'));
+  document.getElementById('l_waitSelect').value = '';
   calculate();
 });
 // Right column listeners
@@ -792,7 +836,8 @@ document.getElementById('r_waitInput').addEventListener('input', () => {
 
 // ─── Simulation ───
 // Rules: initial water reduces 7%. Then wait ≥ X×0.06, reduction = wait × 7/24, max wait X×0.24 → max reduction 7%
-function simulate(X, effectiveWait, startState) {
+// Friend watering: each reduces 2.5% of crop maturity time, applied to remaining before simulation
+function simulate(X, effectiveWait, startState, friendWaterCount) {
   const minWait = X * 0.06;
   const maxReduction = X * 0.07;
   const maxEffWait = Math.min(effectiveWait, 0.24 * X);
@@ -830,8 +875,8 @@ function simulate(X, effectiveWait, startState) {
       firstWait = Math.min(Math.max(optW, minWait), firstWait);
     }
 
-    currentTime += firstWait;
     const nat = Math.min(firstWait, remaining);
+    currentTime += nat;
     remaining -= nat;
     if (remaining <= 0.001) { pushReady(currentTime); return { schedule, harvestTime: currentTime }; }
 
@@ -842,9 +887,15 @@ function simulate(X, effectiveWait, startState) {
     if (remaining <= 0.001) { pushReady(currentTime); return { schedule, harvestTime: currentTime }; }
   } else {
     remaining = X;
+    // Friend watering: each reduces 2.5% of crop maturity, applied before simulation
+    const fw = X * (Math.min(friendWaterCount || 0, 4) * 0.025);
+    remaining = Math.max(0, remaining - fw);
     currentTime = 0;
-    schedule.push({ type: 'water', time: 0, reduction: maxReduction, remaining: remaining - maxReduction, waitSinceLastWater: 0 });
-    remaining -= maxReduction;
+    if (fw > 0.001) {
+      schedule.push({ type: 'friend', time: 0, reduction: fw, remaining: remaining, friendCount: Math.min(friendWaterCount || 0, 4) });
+    }
+    schedule.push({ type: 'water', time: 0, reduction: maxReduction, remaining: Math.max(0, remaining - maxReduction), waitSinceLastWater: 0 });
+    remaining = Math.max(0, remaining - maxReduction);
   }
 
   while (remaining > 0.001) {
@@ -857,8 +908,8 @@ function simulate(X, effectiveWait, startState) {
       if (o * 7 / 24 > maxReduction) o = remaining - maxReduction;
       w = Math.min(Math.max(o, minWait), maxEffWait);
     } else { w = maxEffWait; }
-    currentTime += w;
     const nat = Math.min(w, remaining);
+    currentTime += nat;
     remaining -= nat;
     if (remaining <= 0.001) { pushReady(currentTime); break; }
     const r = calcReduction(w);
@@ -979,9 +1030,13 @@ function calculate() {
   const effectiveWait = Math.max(waitInput, minWait);
   const waitWarning = waitInput < minWait;
 
+  // ── Friend water count ──
+  const friendCount = parseInt(document.getElementById('friendWater').value) || 0;
+
   // ── Simulate from planting (for main results) ──
-  const plantResult = simulate(X, effectiveWait);
+  const plantResult = simulate(X, effectiveWait, null, friendCount);
   const fullSchedule = plantResult.schedule;
+  const friendReduction = X * (Math.min(friendCount, 4) * 0.025);
   const harvestTime = plantResult.harvestTime;
   const totalWaterings = fullSchedule.filter(e => e.type === 'water').length;
   const optResult = computeCycle(X, X * 0.24);
@@ -1047,7 +1102,9 @@ function calculate() {
     '<thead><tr><th>时间</th><th>事件</th><th>等待时间</th><th>减少时间</th><th>剩余时间</th></tr></thead><tbody>';
   md += '<tr><td>-</td><td><span class="tag-water">🌱 种植</span></td><td>-</td><td>-</td><td>' + toDurStr(X) + '</td></tr>';
   for (const e of fullSchedule) {
-    if (e.type === 'water') {
+    if (e.type === 'friend') {
+      md += '<tr><td>-</td><td><span class="tag-ready">👥 好友浇水 ×' + e.friendCount + '</span></td><td>-</td><td>' + toDurStr(e.reduction) + '</td><td>' + toDurStr(e.remaining) + '</td></tr>';
+    } else if (e.type === 'water') {
       const t = e.time < 0.001 ? '-' : toDurStr(e.time);
       md += '<tr class="water-row"><td>' + t + '</td><td><span class="tag-water">💧 浇水</span></td><td>' + (e.waitSinceLastWater > 0 ? toDurStr(e.waitSinceLastWater) : '-') + '</td><td>' + (e.reduction > 0 ? toDurStr(e.reduction) : '-') + '</td><td>' + toDurStr(e.remaining) + '</td></tr>';
     } else if (e.type === 'ready') {
@@ -1059,7 +1116,9 @@ function calculate() {
     '<strong style="color:#2d5a1e;">💡 策略说明</strong><br>' +
     '• 系统自动优化每次浇水的等待时间，最后一轮精确计算到刚好收获。<br>' +
     '• 等待时间越接近 <code>24%</code>，浇水次数越少。<br>' +
-    '• 推荐等待 <code>24%</code>（' + toDurStr(X * 0.24) + '），浇水次数最少。</div></div>';
+    '• 推荐等待 <code>24%</code>（' + toDurStr(X * 0.24) + '），浇水次数最少。<br>' +
+    (friendReduction > 0.001 ? '• 好友浇水共减 ' + toDurStr(friendReduction) + '，但因剩余时间变小会使末轮优化空间减少，<br>　总节省无法简单相加（即 ≠ 个人节省 + ' + formatNum((friendCount * 0.025) * 100) + '%）。<br>' : '') +
+    '</div></div>';
   mainDiv.innerHTML = md;
 
   extraDiv.innerHTML = renderTimeline(timelineSchedule, timelineHarvestTime, rStartDate) + renderNotifList();
